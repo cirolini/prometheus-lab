@@ -1,0 +1,75 @@
+counter nginx_request_duration_bucket by le
+counter nginx_request_duration_sum
+counter nginx_request_bytes_sent_sum
+counter nginx_requests by status, upstream_cache_status
+counter nginx_upstream_requests_status by status
+counter nginx_upstream_response_bucket by le
+
+
+/^(?P<request_time>\d+\.\d+)\|(?P<status>[1-5][0-9][0-9])\|(?P<proxy_status>(?:[1-5][0-9][0-9])|(?:\-))\|(?P<bytes_sent>\d+)\|(?P<upstream_cache_status>(?:\w+)|(?:\-))\|(?:[1-5][0-9][0-9]\,\s)*(?P<upstream_status>(?:[1-5][0-9][0-9])|(?:\-))\|(?:\d+\.\d+\,\s)*(?P<upstream_response_time>(?:\d+\.\d+)|(?:\-)|(?:\d+\.\d+))$/ {
+        $request_time <= 0.005 {
+            nginx_request_duration_bucket["0"]++
+        }
+        $request_time <= 0.060 {
+            nginx_request_duration_bucket["0.05"]++
+        }
+        $request_time <= 0.125 {
+            nginx_request_duration_bucket["0.1"]++
+        }
+        $request_time <= 0.250 {
+            nginx_request_duration_bucket["0.2"]++
+        }
+        $request_time <= 0.700 {
+            nginx_request_duration_bucket["0.6"]++
+        }
+        $request_time <= 1 {
+            nginx_request_duration_bucket["0.9"]++
+        }
+        $request_time <= 2 {
+            nginx_request_duration_bucket["1"]++
+        }
+        $request_time <= 4 {
+            nginx_request_duration_bucket["2"]++
+        }
+        $request_time <= 8 {
+            nginx_request_duration_bucket["4"]++
+        }
+        $request_time <= 16 {
+            nginx_request_duration_bucket["8"]++
+        }
+        nginx_request_duration_bucket["+Inf"]++
+        nginx_request_duration_sum += $request_time
+        nginx_request_bytes_sent_sum += $bytes_sent
+        nginx_requests[$status][$upstream_cache_status]++
+        nginx_upstream_requests_status[$upstream_status]++
+        $upstream_response_time != "-" {
+            $upstream_response_time <= 0.005 {
+                nginx_upstream_response_bucket["0"]++
+            }
+            $upstream_response_time <= 0.050 {
+                nginx_upstream_response_bucket["0.04"]++
+            }
+            $upstream_response_time <= 0.125 {
+                nginx_upstream_response_bucket["0.1"]++
+            }
+            $upstream_response_time <= 0.400 {
+                nginx_upstream_response_bucket["0.35"]++
+            }
+            $upstream_response_time <= 1 {
+                nginx_upstream_response_bucket["0.9"]++
+            }
+            $upstream_response_time <= 2 {
+                nginx_upstream_response_bucket["1"]++
+            }
+            $upstream_response_time <= 4 {
+                nginx_upstream_response_bucket["2"]++
+            }
+            $upstream_response_time <= 8 {
+                nginx_upstream_response_bucket["4"]++
+            }
+            $upstream_response_time <= 16 {
+                nginx_upstream_response_bucket["8"]++
+            }
+            nginx_upstream_response_bucket["+Inf"]++
+        }
+    }
